@@ -1,0 +1,6 @@
+{
+  "name": "Jarvis Lite",
+  "description": "Voice controller assistant allowing hands-free phone control via voice commands and accessibility service.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

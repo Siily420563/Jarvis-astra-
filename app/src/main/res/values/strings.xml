@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Jarvis Lite</string>
+    <string name="accessibility_description">
+        Jarvis Lite can inspect accessible screen text, tap controls,
+        scroll, and replace text in non-password fields.
+        Actions require your confirmation.
+        Enable this service only if you trust this application.
+        Disable it anytime in Android Accessibility settings.
+    </string>
+</resources>
