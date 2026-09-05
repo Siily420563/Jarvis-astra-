@@ -130,32 +130,33 @@ jobs:
 
           TAG_NAME="debug-apk-build-${{ github.run_number }}-${{ github.run_attempt }}"
           RELEASE_TITLE="Debug APK Build #${{ github.run_number }}"
+          NOTES_FILE="${RUNNER_TEMP:-/tmp}/release_notes.md"
 
-          NOTES=$(cat <<EOF
-          ### Automated Debug APK Build
-
-          - **Build Type**: Debug APK (built by GitHub Actions)
-          - **Run Number**: ${{ github.run_number }}
-          - **Run Attempt**: ${{ github.run_attempt }}
-          - **Commit SHA**: ${{ github.sha }}
-
-          > **Notice**:
-          > - This is an automatically generated debug APK intended for testing.
-          > - This APK is not a Play Store production release.
-          > - The APK is signed only with a temporary debug keystore.
-          EOF
-          )
+          {
+            echo "### Automated Debug APK Build"
+            echo ""
+            echo "- **Build Type**: Debug APK (built by GitHub Actions)"
+            echo "- **Run Number**: ${{ github.run_number }}"
+            echo "- **Run Attempt**: ${{ github.run_attempt }}"
+            echo "- **Commit SHA**: ${{ github.sha }}"
+            echo ""
+            echo "> **Notice**:"
+            echo "> - This is an automatically generated debug APK intended for testing."
+            echo "> - This APK is not a Play Store production release."
+            echo "> - The APK is signed only with a temporary debug keystore."
+          } > "$NOTES_FILE"
 
           echo "Creating release with tag: $TAG_NAME"
           gh release create "$TAG_NAME" \
             "$ASSET_PATH" \
             --title "$RELEASE_TITLE" \
-            --notes "$NOTES" \
+            --notes-file "$NOTES_FILE" \
             --target "${{ github.sha }}" \
             --latest
 
       - name: Report APK download result
         if: always()
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -165,37 +166,36 @@ jobs:
 
           if [ "$RELEASE_OUTCOME" = "success" ]; then
             echo "GitHub Release publishing succeeded!"
-            RELEASE_INFO=$(gh release view "$TAG_NAME" --json tagName,name,url)
-            RELEASE_URL=$(echo "$RELEASE_INFO" | grep -o '"url":"[^"]*' | cut -d'"' -f4)
-            RELEASE_TITLE=$(echo "$RELEASE_INFO" | grep -o '"name":"[^"]*' | cut -d'"' -f4)
+            RELEASE_URL=$(gh release view "$TAG_NAME" --json url -q .url 2>/dev/null || echo "https://github.com/${{ github.repository }}/releases/tag/${TAG_NAME}")
+            RELEASE_TITLE=$(gh release view "$TAG_NAME" --json name -q .name 2>/dev/null || echo "Debug APK Build #${{ github.run_number }}")
             echo "Release Tag: $TAG_NAME"
             echo "Release Title: $RELEASE_TITLE"
             echo "Direct Release URL: $RELEASE_URL"
             echo "APK Asset Filename: $ASSET_NAME"
 
-            cat <<EOF >> "$GITHUB_STEP_SUMMARY"
-            ## 🚀 Debug APK Build & Release Succeeded
-
-            - **Release Title**: $RELEASE_TITLE
-            - **Release Tag**: \`$TAG_NAME\`
-            - **APK Filename**: \`$ASSET_NAME\`
-            - **Direct Release Page**: [$RELEASE_URL]($RELEASE_URL)
-
-            The APK can be downloaded directly from the **Assets** section of the release page on your phone or computer.
-            *Note: The standard GitHub Actions artifact (\`app-debug-apk\`) is also preserved and available as a backup.*
-            EOF
+            {
+              echo "## 🚀 Debug APK Build & Release Succeeded"
+              echo ""
+              echo "- **Release Title**: $RELEASE_TITLE"
+              echo "- **Release Tag**: \`$TAG_NAME\`"
+              echo "- **APK Filename**: \`$ASSET_NAME\`"
+              echo "- **Direct Release Page**: [$RELEASE_URL]($RELEASE_URL)"
+              echo ""
+              echo "The APK can be downloaded directly from the **Assets** section of the release page on your phone or computer."
+              echo "*Note: The standard GitHub Actions artifact (\`app-debug-apk\`) is also preserved and available as a backup.*"
+            } >> "$GITHUB_STEP_SUMMARY"
           else
             echo "::warning::GitHub Release publishing failed or was skipped."
             echo "Notice: APK build and verification succeeded."
             echo "The GitHub Actions artifact named 'app-debug-apk' remains available for download."
 
-            cat <<EOF >> "$GITHUB_STEP_SUMMARY"
-            ## ⚠️ Debug APK Build Succeeded (Release Publishing Notice)
-
-            The debug APK was built and verified successfully.
-            However, publishing to GitHub Releases encountered an issue.
-
-            **Download Backup**:
-            The debug APK is preserved and available for download under the workflow's **Artifacts** section as **\`app-debug-apk\`**.
-            EOF
+            {
+              echo "## ⚠️ Debug APK Build Succeeded (Release Publishing Notice)"
+              echo ""
+              echo "The debug APK was built and verified successfully."
+              echo "However, publishing to GitHub Releases encountered an issue."
+              echo ""
+              echo "**Download Backup**:"
+              echo "The debug APK is preserved and available for download under the workflow's **Artifacts** section as **\`app-debug-apk\`**."
+            } >> "$GITHUB_STEP_SUMMARY"
           fi
